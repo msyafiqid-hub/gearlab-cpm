@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GEAR LAB CPM</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #0D1117; --panel: #161B22; --card: #1C2230; --border: #2A3342;
+    --input: #0D1117; --input-border: #394356;
+    --text: #E6EDF3; --dim: #9AA6B2; --muted: #6E7A87;
+    --accent: #F5A623; --blue: #2F81F7; --green: #3FB950; --red: #F85149;
+    --plot: #0A0D12;
+    --s-yellow: #F5E642; --s-red: #FF4D4D; --s-green: #3DDC5A; --s-white: #F0F3F6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  button, input, select { font: inherit; color: inherit; }
+
+  /* ---------- header ---------- */
+  header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: linear-gradient(90deg, #1A2130, var(--panel) 60%, #141A24);
+    border-bottom: 2px solid var(--accent); }
+  header img { width: 32px; height: 32px; }
+  .brand { flex: 1; min-width: 0; line-height: 1.1; }
+  .brand b { color: var(--accent); font-size: 18px; letter-spacing: 2px; font-weight: 800; }
+  .brand span { display: block; color: var(--dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+    border: 1px solid currentColor; }
+  .pill.idle { color: var(--dim); background: rgba(110,122,135,.15); }
+  .pill.conn { color: var(--green); background: rgba(63,185,80,.15); }
+  .pill.rec { color: var(--red); background: rgba(248,81,73,.15); }
+  .pill.warn { color: var(--accent); background: rgba(245,166,35,.15); }
+  .icon-btn { background: none; border: 1px solid var(--input-border); border-radius: 10px; width: 38px; height: 38px;
+    display: grid; place-items: center; cursor: pointer; flex: none; }
+  .icon-btn svg { width: 20px; height: 20px; stroke: var(--dim); }
+
+  main { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: 1200px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .card h2 { margin: 0 0 10px; font-size: 13px; color: var(--accent); letter-spacing: .5px; text-transform: uppercase; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+
+  /* ---------- buttons ---------- */
+  .btn { border: 1px solid var(--input-border); background: #262E3B; border-radius: 10px; padding: 12px 10px;
+    font-weight: 600; cursor: pointer; min-height: 48px; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .45; }
+  .btn.primary { background: var(--blue); border-color: #1F6FEB; color: #fff; }
+  .btn.start { background: var(--green); border-color: #2EA043; color: #04150A; }
+  .btn.stop { background: var(--red); border-color: #DA3633; color: #fff; }
+  .btn.small { min-height: 38px; padding: 6px 10px; font-weight: 500; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .actions .wide { grid-column: span 2; }
+
+  /* ---------- readouts ---------- */
+  .readouts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tile { background: #070A0E; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .tile .lab { color: var(--dim); font-size: 12px; display: flex; justify-content: space-between; }
+  .tile .val { font: 700 30px/1.1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--green);
+    font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; overflow: hidden; }
+  .tile.hero .val { font-size: 48px; }
+  .tile.hero.power .val { color: var(--accent); }
+  .tile .unit { color: var(--muted); font-size: 12px; }
+  .avg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--dim); font-size: 13px; }
+  .seg { min-width: 0; scrollbar-width: none; display: flex; background: var(--input); border: 1px solid var(--input-border); border-radius: 10px; padding: 2px; gap: 2px; overflow-x: auto; }
+  .seg button { flex: 1 0 auto; border: 0; background: none; border-radius: 8px; padding: 7px 8px; color: var(--dim); cursor: pointer; white-space: nowrap; font-size: 13px; }
+  .seg button.on { background: #2E3746; color: var(--text); font-weight: 600; }
+
+  /* ---------- graph ---------- */
+  .graph-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .graph-wrap { position: relative; height: 260px; background: var(--plot); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .graph-wrap.all { height: auto; display: grid; gap: 1px; background: var(--border); }
+  .graph-wrap canvas { display: block; width: 100%; height: 100%; }
+  .graph-wrap.all canvas { height: 170px; background: var(--plot); }
+
+  /* ---------- inputs ---------- */
+  .field { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 8px; margin: 8px 0; }
+  .field label { color: var(--dim); font-size: 14px; }
+  .stepper { display: flex; align-items: stretch; border: 1px solid var(--input-border); border-radius: 10px; overflow: hidden; background: var(--input); }
+  .stepper button { width: 46px; border: 0; background: #202733; font-size: 20px; cursor: pointer; }
+  .stepper input { flex: 1; min-width: 0; border: 0; background: none; text-align: center; padding: 10px 4px; font-variant-numeric: tabular-nums; }
+  select, .txt { width: 100%; border: 1px solid var(--input-border); border-radius: 10px; background: var(--input); padding: 11px 10px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  .locked .stepper, .locked select { opacity: .5; pointer-events: none; }
+
+  /* ---------- recordings ---------- */
+  .rec-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .rec-item { display: flex; gap: 8px; align-items: center; background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+  .rec-item .meta { flex: 1; min-width: 0; }
+  .rec-item .btn.small { padding: 6px 9px; }
+  .rec-item .meta b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rec-item .meta span { color: var(--muted); font-size: 12px; }
+
+  /* ---------- sheet / dialogs ---------- */
+  dialog { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); color: var(--text); padding: 0; width: min(560px, 94vw); max-height: 90vh; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .sheet-head { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .sheet-head h3 { margin: 0; flex: 1; font-size: 16px; }
+  .sheet-body { padding: 12px 14px; overflow: auto; max-height: calc(90vh - 60px); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+  .kv dt { color: var(--dim); } .kv dd { margin: 0; font-family: ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+  textarea { width: 100%; min-height: 100px; background: var(--input); border: 1px solid var(--input-border); border-radius: 10px; color: var(--text); padding: 8px; font: 12px ui-monospace, monospace; }
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #262E3B; border: 1px solid var(--input-border);
+    border-radius: 10px; padding: 10px 14px; z-index: 50; max-width: 92vw; box-shadow: 0 6px 24px rgba(0,0,0,.4); display: none; }
+  .banner { background: rgba(245,166,35,.12); border: 1px solid var(--accent); color: var(--accent); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .banner.err { background: rgba(248,81,73,.12); border-color: var(--red); color: #FFB3AE; }
+  footer { color: var(--muted); font-size: 11px; text-align: center; padding: 8px 12px 20px; }
+
+  /* ---------- landscape / tablet ---------- */
+  @media (min-width: 760px) {
+    main { grid-template-columns: 340px 1fr; align-items: start; }
+    main > :not(#graphCard) { grid-column: 1; }
+    #graphCard { grid-column: 2; grid-row: 1 / span 5; position: sticky; top: 70px; }
+    .graph-wrap { height: 62vh; }
+    .graph-wrap.all canvas { height: max(130px, calc((100vh - 230px) / 4)); }
+  }
+  @media (orientation: landscape) and (max-height: 500px) {
+    header { padding: 6px 14px; }
+    main { grid-template-columns: 300px 1fr; }
+    #graphCard { grid-column: 2; grid-row: 1 / span 5; position: sticky; top: 58px; }
+    .btn { min-height: 42px; padding: 8px; }
+    .graph-wrap { height: 72vh; }
+    .tile.hero .val { font-size: 36px; }
+    .graph-wrap.all { grid-template-columns: 1fr 1fr; }
+    .graph-wrap.all canvas { height: calc((100vh - 150px) / 2); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <img src="icon-192.png" alt="">
+  <div class="brand"><b>GEAR LAB</b><span>Crank Power Meter (CPM)</span></div>
+  <span id="statusPill" class="pill idle">○ DISCONNECTED</span>
+  <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<main>
+  <div id="banners"></div>
+
+  <section class="card">
+    <div class="actions">
+      <button class="btn primary" id="connectBtn">Connect</button>
+      <button class="btn start" id="startBtn" disabled>Start</button>
+      <button class="btn small wide" id="tareBtn" disabled>Reset Crank (zero torque)</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="avg-row"><span>Average</span>
+      <div class="seg grow" id="avgSeg">
+        <button data-v="0">Instant</button><button data-v="1">1 s</button><button data-v="3">3 s</button><button data-v="5">5 s</button><button data-v="10">10 s</button>
+      </div>
+    </div>
+    <div class="readouts">
+      <div class="tile hero power"><div class="lab">Power L+R <span class="unit">W</span></div><div class="val" id="vTotal">--</div></div>
+      <div class="tile hero"><div class="lab">Cadence <span class="unit">rpm</span></div><div class="val" id="vCad">--</div></div>
+      <div class="tile"><div class="lab">Left <span class="unit">W</span></div><div class="val" id="vLeft">--</div></div>
+      <div class="tile"><div class="lab">Right <span class="unit">W</span></div><div class="val" id="vRight">--</div></div>
+      <div class="tile"><div class="lab">Load <span class="unit">W</span></div><div class="val" id="vLoad">--</div></div>
+      <div class="tile"><div class="lab">Rear <span class="unit">rpm</span></div><div class="val" id="vRear">--</div></div>
+    </div>
+  </section>
+
+  <section class="card" id="graphCard">
+    <div class="graph-head">
+      <div class="seg grow" id="graphSeg">
+        <button data-g="torque">Torque</button><button data-g="rpm">RPM</button><button data-g="power">Power</button><button data-g="angle">Angle</button><button data-g="all">All</button>
+      </div>
+    </div>
+    <div class="graph-wrap" id="graphWrap"></div>
+    <div class="avg-row" style="margin:8px 0 0"><span>Window</span>
+      <div class="seg grow" id="winSeg"><button data-v="5">5 s</button><button data-v="10">10 s</button><button data-v="30">30 s</button><button data-v="60">60 s</button></div>
+    </div>
+  </section>
+
+  <section class="card" id="controlsCard">
+    <h2>Experiment</h2>
+    <div class="field"><label>Riding load</label>
+      <div class="stepper"><button data-step="-0.1" data-for="load">−</button><input id="loadInput" inputmode="decimal" type="number" step="0.1" min="0" max="1000"><button data-step="0.1" data-for="load">+</button></div></div>
+    <p class="hint" style="margin:-4px 0 6px 118px">Nm · sent to the brake immediately</p>
+    <div id="lockable">
+      <div class="field"><label>Front</label>
+        <div class="stepper"><button data-step="-1" data-for="front">−</button><input id="frontInput" inputmode="numeric" type="number" step="1" min="1" max="100"><button data-step="1" data-for="front">+</button></div></div>
+      <div class="field"><label>Rear sprocket</label><select id="rearSelect"></select></div>
+      <p class="hint" id="ratioHint" style="margin-left:118px"></p>
+      <div class="field"><label>Crank length</label>
+        <div class="stepper"><button data-step="-2.5" data-for="crank">−</button><input id="crankInput" inputmode="decimal" type="number" step="0.5" min="50" max="250"><button data-step="2.5" data-for="crank">+</button></div></div>
+      <p class="hint" style="margin-left:118px">mm · gear and crank length lock while recording</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Recordings</h2>
+    <div class="rec-list" id="recList"><p class="hint">No recordings yet.</p></div>
+  </section>
+</main>
+<footer>GEAR LAB Crank Power Meter (CPM) · Developed by 宋慕翰 · Muhammad Syafiq · Ranchoddas Shamaldas Chanchad · Phunsukh Wangdu</footer>
+
+<dialog id="settingsDlg">
+  <div class="sheet-head"><h3>Settings</h3><button class="btn small" id="closeSettings">Done</button></div>
+  <div class="sheet-body">
+    <h2 style="color:var(--accent);font-size:13px;text-transform:uppercase;margin:4px 0 8px">Calibration from PC</h2>
+    <p class="hint" style="font-size:13px;margin-bottom:8px">Import <b>settings.ini</b> from the PC (Documents\gearLab\settings.ini) after calibrating there. Crank, load, brake and rear-encoder calibration are all read from it.</p>
+    <div class="row" style="flex-wrap:wrap">
+      <label class="btn primary small" style="display:inline-grid;place-items:center">Import settings.ini<input type="file" id="iniFile" accept=".ini,text/plain,*/*" hidden></label>
+      <button class="btn small" id="pasteToggle">Paste text instead</button>
+    </div>
+    <div id="pasteBox" hidden style="margin-top:8px">
+      <textarea id="pasteText" placeholder="Paste the contents of settings.ini here"></textarea>
+      <button class="btn small primary" id="pasteApply" style="margin-top:6px">Apply pasted settings</button>
+    </div>
+    <dl class="kv" id="calSummary" style="margin-top:12px"></dl>
+
+    <h2 style="color:var(--accent);font-size:13px;text-transform:uppercase;margin:18px 0 8px">Wheel</h2>
+    <div class="field"><label>Circumference</label>
+      <div class="stepper"><button data-step="-0.005" data-for="wheel">−</button><input id="wheelInput" inputmode="decimal" type="number" step="0.001" min="0.5" max="4"><button data-step="0.005" data-for="wheel">+</button></div></div>
+    <p class="hint" style="margin-left:118px">m · used for speed (km/h) in the CSV</p>
+
+    <h2 style="color:var(--accent);font-size:13px;text-transform:uppercase;margin:18px 0 8px">Try without hardware</h2>
+    <button class="btn small" id="demoBtn">Start demo mode</button>
+    <p class="hint">Simulated pedalling data so you can test the screens and recording. Nothing is sent to the brake.</p>
+
+    <h2 style="color:var(--accent);font-size:13px;text-transform:uppercase;margin:18px 0 8px">About</h2>
+    <p style="margin:0"><b style="color:var(--accent)">GEAR LAB</b> Crank Power Meter (CPM) — mobile</p>
+    <p class="hint" style="font-size:13px">Developed by 宋慕翰, Muhammad Syafiq, Ranchoddas Shamaldas Chanchad, Phunsukh Wangdu</p>
+    <p class="hint" id="bleSupport"></p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
